@@ -29,7 +29,4 @@ hermes
   .then(() => {
     console.log('Listening...');
   })
-  .catch(err => {
-    console.log('>>>>>');
-    console.error(err);
-  });
+  .catch(console.error);

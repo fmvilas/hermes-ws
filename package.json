@@ -1,12 +1,13 @@
 {
-  "name": "hermesjs-socketio",
-  "version": "2.0.0",
+  "name": "hermesjs-ws",
+  "version": "1.0.0",
   "description": "WebSockets adapter for HermesJS. Powered by Socket.IO.",
-  "main": "socketio.js",
-  "repository": "https://github.com/fmvilas/hermes-socketio",
-  "bugs": "https://github.com/fmvilas/hermes-socketio/issues",
+  "main": "index.js",
+  "repository": "https://github.com/fmvilas/hermes-ws",
+  "bugs": "https://github.com/fmvilas/hermes-ws/issues",
   "keywords": [
     "websockets",
+    "ws",
     "socket.io",
     "socketio",
     "hermes",
