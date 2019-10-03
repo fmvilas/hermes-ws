@@ -1,93 +1,71 @@
-'use strict';
-
+const http = require('http');
 const socketio = require('socket.io');
-const HermesMessage = require('hermesjs-message');
+const { Adapter, Message } = require('hermesjs');
 
-function init (settings) {
-  return function (hermes) {
-    return new HermesSocketIO(settings, hermes);
-  };
-}
-
-function HermesSocketIO (settings, hermes) {
-  this.hermes = hermes;
-  this.server_settings = settings;
-}
-
-/**
- * Makes the adapter start listening.
- */
-HermesSocketIO.prototype.listen = function listen () {
-  this.setup();
-  if (this.http_server.listen) {
-    this.server = this.http_server.listen(this.server_settings.port || 80);
-  } else {
-    this.server = this.http_server(this.server_settings.port || 80);
-  }
-  return this.server;
-};
-
-/**
- * Setup adapter configuration.
- */
-HermesSocketIO.prototype.setup = function setup () {
-  this.http_server = this.server_settings.http_server;
-  if (!this.http_server) {
-    this.io = socketio();
-  } else {
-    this.io = socketio(this.http_server);
+class WebSocketsAdapter extends Adapter {
+  name() {
+    return 'WebSockets adapter';
   }
 
-  this.io.on('connection', (socket) => {
-    this.hermes.emit('client:ready', { name: 'Socket.IO adapter' });
-    socket.onevent = (packet) => {
-      this.onReceiveFromClient(this.createMessage(packet, socket));
-    };
-  });
-};
+  async connect() {
+    return this._connect();
+  }
 
-/**
- * Sends the message coming from WS client to Hermes.
- * @param {HermesMessage} message The message to be sent
- */
-HermesSocketIO.prototype.onReceiveFromClient = function onReceiveFromClient (message) {
-  this.hermes.emit('client:message', message);
-};
+  async send(message, options) {
+    return this._send(message, options);
+  }
 
-/**
- * Serializes the WS message as an HermesMessage.
- *
- * @param {Object} packet WS message
- * @param {Socket} client Socket object
- * @return {HermesMessage}
- */
-HermesSocketIO.prototype.createMessage = function createMessage (packet, client) {
-  const message = new HermesMessage({
-    topic: packet.data[0],
-    payload: packet.data[1] || {},
-    protocol: {
-      name: this.server_settings.protocol || 'ws',
-      headers: {
-        type: packet.type,
-        nsp: packet.nsp
-      }
-    },
-    connection: client,
-    packet
-  });
+  _connect() {
+    return new Promise((resolve, reject) => {
+      let resolved = false;
 
-  message.on('send', this.send.bind(this, message));
+      this.options.httpServer = this.options.httpServer || http.createServer();
+      this.options.httpServerSettings = this.options.httpServerSettings || {};
+      this.options.httpServerSettings.path = this.options.httpServerSettings.path || '/ws';
+      this.io = socketio(this.options.httpServer, this.options.httpServerSettings);
 
-  return message;
-};
+      this.io.on('connection', socket => {
+        socket.onevent = message => {
+          this.emit('message', this._createMessage(message, socket));
+        };
+        socket.on('error', error => {
+          this.emit('error', error);
+        });
+      });
 
-/**
- * Sends the message down to the wire (WS client).
- *
- * @param {HermesMessage} message The message to be sent
- */
-HermesSocketIO.prototype.send = function send (message) {
-  this.io.emit(message.topic, message.payload);
-};
+      this.options.httpServer.on('error', error => {
+        if (!resolved) return reject(error);
+        this.emit('error', error);
+      });
 
-module.exports = init;
+      this.options.httpServer.listen(this.options.port || 3000, () => {
+        resolve(this);
+        resolved = true;
+      });
+    });
+  }
+
+  _send (message) {
+    return new Promise((resolve) => {
+      const socket = message.headers && message.headers.socket ? message.headers.socket : this.io;
+      socket.emit(this._translateHermesRoute(message.topic), message.payload);
+      resolve();
+    });
+  }
+
+  _createMessage(msg, socket) {
+    return new Message(this.hermes, msg.data[1], { socket }, this._translateTopicName(msg.data[0]));
+  }
+
+  _translateTopicName(topicName) {
+    if (this.options.topicSeparator === undefined) return topicName;
+    return topicName.replace(new RegExp(`${this.options.topicSeparator}`, 'g'), '/');
+  }
+
+  _translateHermesRoute(hermesRoute) {
+    if (this.options.topicSeparator === undefined) return hermesRoute;
+    return hermesRoute.replace(/\//g, this.options.topicSeparator);
+  }
+}
+
+module.exports = WebSocketsAdapter;

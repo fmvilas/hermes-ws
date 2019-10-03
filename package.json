@@ -1,13 +1,10 @@
 {
   "name": "hermesjs-socketio",
   "version": "1.1.0",
-  "description": "Socket.IO adapter for HermesJS",
+  "description": "WebSockets adapter for HermesJS. Powered by Socket.IO.",
   "main": "socketio.js",
-  "scripts": {
-    "test": "mocha test"
-  },
-  "repository": "https://github.com/hitchhq/hermes-socketio",
-  "bugs": "https://github.com/hitchhq/hermes-socketio/issues",
+  "repository": "https://github.com/fmvilas/hermes-socketio",
+  "bugs": "https://github.com/fmvilas/hermes-socketio/issues",
   "keywords": [
     "websockets",
     "socket.io",
@@ -15,15 +12,10 @@
     "hermes",
     "hermesjs"
   ],
-  "author": "Francisco Mendez Vilas (fmvilas@gmail.com)",
+  "author": "Fran Mendez <fmvilas@gmail.com> (fmvilas.com)",
   "license": "MIT",
   "dependencies": {
-    "hermesjs-message": "~2.0.0",
+    "hermesjs": "^2.2.1",
     "socket.io": "^1.4.8"
-  },
-  "devDependencies": {
-    "mocha": "^3.0.2",
-    "should": "^11.1.0",
-    "sinon": "^1.17.6"
   }
 }
